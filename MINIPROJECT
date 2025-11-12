@@ -1,0 +1,139 @@
+package POSProject;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+// Base abstract class for common methods
+abstract class POSBase {
+    abstract void showMessage(String msg);
+}
+
+// ------------------- LOGIN FRAME -------------------
+class LoginFrame extends POSBase {
+    JFrame frame = new JFrame("POS Login");
+    JTextField userField = new JTextField(15);
+    JPasswordField passField = new JPasswordField(15);
+    JButton loginBtn = new JButton("Login");
+
+    LoginFrame() {
+        frame.setLayout(new GridLayout(3, 2, 10, 10));
+        frame.add(new JLabel("Username:"));
+        frame.add(userField);
+        frame.add(new JLabel("Password:"));
+        frame.add(passField);
+        frame.add(loginBtn);
+        frame.setSize(300, 150);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+
+        loginBtn.addActionListener(e -> checkLogin());
+    }
+
+    private void checkLogin() {
+        String user = userField.getText();
+        String pass = new String(passField.getPassword());
+        if (user.equals("admin") && pass.equals("admin123")) {
+            showMessage("Login Successful!");
+            frame.dispose();
+            new POSFrame();
+        } else {
+            showMessage("Invalid Credentials!");
+        }
+    }
+
+    @Override
+    void showMessage(String msg) {
+        JOptionPane.showMessageDialog(frame, msg);
+    }
+}
+
+// ------------------- MAIN POS FRAME -------------------
+class POSFrame extends POSBase {
+    JFrame frame = new JFrame("School Canteen POS");
+    JTextField itemField = new JTextField(10);
+    JTextField priceField = new JTextField(5);
+    JTextArea billArea = new JTextArea(15, 30);
+    JButton addButton = new JButton("Add Item");
+    JButton genBillButton = new JButton("Generate Bill");
+
+    double total = 0;
+    StringBuilder items = new StringBuilder();
+
+    POSFrame() {
+        frame.setLayout(new FlowLayout());
+        frame.setSize(420, 450);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+
+        frame.add(new JLabel("Item Name:"));
+        frame.add(itemField);
+        frame.add(new JLabel("Price (₹):"));
+        frame.add(priceField);
+        frame.add(addButton);
+        frame.add(genBillButton);
+        frame.add(new JScrollPane(billArea));
+
+        billArea.setEditable(false);
+        billArea.append("---- School Canteen POS ----\n");
+
+        addButton.addActionListener(e -> addItem());
+        genBillButton.addActionListener(e -> generateBill());
+
+        frame.setVisible(true);
+    }
+
+    private void addItem() {
+        try {
+            String item = itemField.getText();
+            double price = Double.parseDouble(priceField.getText());
+            if (item.isEmpty()) {
+                showMessage("Enter item name!");
+                return;
+            }
+
+            items.append(item).append(" - ₹").append(price).append("\n");
+            billArea.append(item + " - ₹" + price + "\n");
+            total += price;
+
+            itemField.setText("");
+            priceField.setText("");
+        } catch (NumberFormatException ex) {
+            showMessage("Please enter a valid price!");
+        }
+    }
+
+    private void generateBill() {
+        billArea.append("\n-------------------------\n");
+        billArea.append("Total Amount: ₹" + total + "\n");
+        billArea.append("-------------------------\n");
+
+        try (FileWriter fw = new FileWriter("canteen_bill.txt", true)) {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+            fw.write("\n--- Bill [" + dtf.format(LocalDateTime.now()) + "] ---\n");
+            fw.write(items.toString());
+            fw.write("Total: ₹" + total + "\n");
+            fw.write("-----------------------------\n");
+        } catch (IOException e) {
+            showMessage("Error saving bill!");
+        }
+        showMessage("Bill generated successfully!");
+    }
+
+    @Override
+    void showMessage(String msg) {
+        JOptionPane.showMessageDialog(frame, msg);
+    }
+}
+
+// ------------------- MAIN CLASS -------------------
+public class POSSystem {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(LoginFrame::new);
+    }
+}
